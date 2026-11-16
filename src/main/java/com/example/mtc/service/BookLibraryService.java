@@ -4,6 +4,7 @@ import com.example.mtc.entity.BookLibrary;
 import com.example.mtc.entity.BookLibraryId;
 import com.example.mtc.repository.BookLibraryRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -46,6 +47,7 @@ public class BookLibraryService {
         return repository.save(library);
     }
 
+    @Transactional
     public void removeBook(
             Long userId,
             Long bookId

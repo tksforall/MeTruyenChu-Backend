@@ -1,9 +1,11 @@
 package com.example.mtc.service;
 
 import com.example.mtc.entity.Comment;
+import com.example.mtc.entity.User;
 import com.example.mtc.repository.CommentRepository;
 import com.example.mtc.repository.CommentLikeRepository;
 import com.example.mtc.repository.ReportRepository;
+import com.example.mtc.repository.UserRepository;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -17,104 +19,61 @@ public class CommentService {
     private final CommentRepository repository;
     private final CommentLikeRepository commentLikeRepository;
     private final ReportRepository reportRepository;
-
+    private final UserRepository userRepository;
 
     public CommentService(
             CommentRepository repository,
             CommentLikeRepository commentLikeRepository,
-            ReportRepository reportRepository
+            ReportRepository reportRepository,
+            UserRepository userRepository
     ) {
-
         this.repository = repository;
         this.commentLikeRepository = commentLikeRepository;
         this.reportRepository = reportRepository;
+        this.userRepository = userRepository;
     }
 
-    // ======================================================
-    // LẤY COMMENT THEO ID
-    // ======================================================
-
-    public Comment getCommentById(
-            Long commentId
-    ) {
-
-        return repository
-                .findById(commentId)
-                .orElseThrow(() ->
-                        new RuntimeException(
-                                "Không tìm thấy comment với ID: "
-                                        + commentId
-                        )
-                );
+    // Hàm gắn tên thật của user vào Comment
+    private Comment attachUserName(Comment comment) {
+        if (comment != null && comment.getUserId() != null) {
+            String name = userRepository.findById(comment.getUserId())
+                    .map(User::getUserName) // Nếu Entity User đặt tên biến là username thì đổi thành User::getUsername
+                    .orElse("User #" + comment.getUserId());
+            comment.setUserName(name);
+        }
+        return comment;
     }
 
-
-    // ======================================================
-    // LẤY COMMENT CỦA TRUYỆN
-    // ======================================================
-
-    public List<Comment> getByBookId(
-            Long bookId
-    ) {
-
-        return repository.findByBookId(bookId);
+    private List<Comment> attachUserNames(List<Comment> comments) {
+        comments.forEach(this::attachUserName);
+        return comments;
     }
 
-
-    // ======================================================
-    // LẤY COMMENT CHÍNH
-    // ======================================================
-
-    public List<Comment> getMainComments(
-            Long bookId
-    ) {
-
-        return repository
-                .findByBookIdAndParentCommentIdIsNull(
-                        bookId
-                );
+    // Cập nhật các hàm lấy danh sách & tạo mới để trả kèm userName:
+    public Comment getCommentById(Long commentId) {
+        Comment comment = repository.findById(commentId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy comment với ID: " + commentId));
+        return attachUserName(comment);
     }
 
-
-    // ======================================================
-    // LẤY REPLY
-    // ======================================================
-
-    public List<Comment> getReplies(
-            Long commentId
-    ) {
-
-        return repository.findByParentCommentId(
-                commentId
-        );
+    public List<Comment> getByBookId(Long bookId) {
+        return attachUserNames(repository.findByBookId(bookId));
     }
 
-
-    // ======================================================
-    // LẤY COMMENT CỦA CHƯƠNG
-    // ======================================================
-
-    public List<Comment> getByChapterId(
-            Long chapterId
-    ) {
-
-        return repository.findByChapterId(
-                chapterId
-        );
+    public List<Comment> getMainComments(Long bookId) {
+        return attachUserNames(repository.findByBookIdAndParentCommentIdIsNull(bookId));
     }
 
+    public List<Comment> getReplies(Long commentId) {
+        return attachUserNames(repository.findByParentCommentId(commentId));
+    }
 
-    // ======================================================
-    // LẤY COMMENT CỦA USER
-    // ======================================================
+    public List<Comment> getByChapterId(Long chapterId) {
+        return attachUserNames(repository.findByChapterId(chapterId));
+    }
 
-    public List<Comment> getByUserId(
-            Long userId
-    ) {
-
-        return repository.findByUserId(
-                userId
-        );
+    public List<Comment> getByUserId(Long userId) {
+        return attachUserNames(repository.findByUserId(userId));
     }
 
 

@@ -7,7 +7,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
-
+import java.util.Map;
+import java.util.Random;
+import java.util.concurrent.ConcurrentHashMap;
 import java.time.LocalDateTime;
 
 @Service
@@ -17,6 +19,8 @@ public class UserService {
             new BCryptPasswordEncoder();
 
     private final UserRepository repository;
+
+    private final Map<String, String> otpStorage = new ConcurrentHashMap<>();
 
     public UserService(UserRepository repository) {
         this.repository = repository;
@@ -531,6 +535,103 @@ public class UserService {
         System.out.println(
                 "CHANGE EMAIL SUCCESS"
         );
+    }
+
+    // ======================================================
+    // QUÊN MẬT KHẨU - BƯỚC 1: TẠO MÃ OTP GIẢ LẬP
+    // ======================================================
+
+    public String generateOtpForEmail(String email) {
+
+        if (email == null || email.trim().isEmpty()) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Vui lòng nhập email"
+            );
+        }
+
+        String normalizedEmail = email.trim();
+
+        User user = repository
+                .findByEmail(normalizedEmail)
+                .orElseThrow(() ->
+                        new ResponseStatusException(
+                                HttpStatus.NOT_FOUND,
+                                "Email không tồn tại trong hệ thống"
+                        )
+                );
+
+        if (!"ACTIVE".equals(user.getStatus())) {
+            throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN,
+                    "Tài khoản đã bị khóa"
+            );
+        }
+
+        // Sinh ngẫu nhiên mã OTP 6 chữ số (VD: 048291)
+        String otp = String.format("%06d", new Random().nextInt(1000000));
+        otpStorage.put(normalizedEmail.toLowerCase(), otp);
+
+        return otp;
+    }
+
+
+    // ======================================================
+    // QUÊN MẬT KHẨU - BƯỚC 2: XÁC NHẬN OTP & ĐẶT LẠI MẬT KHẨU
+    // ======================================================
+
+    public void resetPasswordWithOtp(
+            String email,
+            String otp,
+            String newPassword
+    ) {
+
+        if (email == null || otp == null || newPassword == null) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Thiếu thông tin xác nhận"
+            );
+        }
+
+        String normalizedEmail = email.trim().toLowerCase();
+        String savedOtp = otpStorage.get(normalizedEmail);
+
+        if (savedOtp == null || !savedOtp.equals(otp.trim())) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Mã xác nhận không chính xác hoặc đã hết hạn"
+            );
+        }
+
+        if (newPassword.length() < 6) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Mật khẩu mới phải có ít nhất 6 ký tự"
+            );
+        }
+
+        User user = repository
+                .findByEmail(email.trim())
+                .orElseThrow(() ->
+                        new ResponseStatusException(
+                                HttpStatus.NOT_FOUND,
+                                "Không tìm thấy người dùng"
+                        )
+                );
+
+        // Mã hóa BCrypt vào passwordHash giống hệt lúc đăng ký/đổi mật khẩu
+        user.setPasswordHash(
+                passwordEncoder.encode(newPassword)
+        );
+
+        user.setUpdatedAt(
+                LocalDateTime.now()
+        );
+
+        repository.save(user);
+
+        // Xóa mã OTP đã sử dụng
+        otpStorage.remove(normalizedEmail);
     }
 
 }

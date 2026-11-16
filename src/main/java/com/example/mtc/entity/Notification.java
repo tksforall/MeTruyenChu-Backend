@@ -14,6 +14,17 @@ public class Notification {
     @Column(name = "USER_ID", nullable = false)
     private Long userId;
 
+    @Column(name = "BOOK_ID")
+    private Long bookId;
+
+    public Long getBookId() {
+        return bookId;
+    }
+
+    public void setBookId(Long bookId) {
+        this.bookId = bookId;
+    }
+
     @Column(name = "TYPE", nullable = false, length = 50)
     private String type;
 

@@ -24,8 +24,7 @@ public class NotificationService {
     // ======================================================
 
     public List<Notification> getByUserId(Long userId) {
-
-        return repository.findByUserId(userId);
+        return repository.findByUserIdOrderByCreatedAtDesc(userId);
     }
 
 

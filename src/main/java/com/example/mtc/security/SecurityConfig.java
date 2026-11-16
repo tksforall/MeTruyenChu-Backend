@@ -28,6 +28,8 @@ public class SecurityConfig {
                 )
 
                 .authorizeHttpRequests(auth -> auth
+
+                        .requestMatchers("/error").permitAll()
                         // Auth & Book công khai
                         .requestMatchers("/api/auth/**", "/api/books/**").permitAll()
 

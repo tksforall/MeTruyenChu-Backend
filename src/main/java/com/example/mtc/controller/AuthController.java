@@ -68,6 +68,39 @@ public class AuthController {
 
 
     // ======================================================
+    // FORGOT PASSWORD (TẠO OTP GIẢ LẬP)
+    // ======================================================
+
+    @PostMapping("/forgot-password")
+    public java.util.Map<String, String> forgotPassword(
+            @RequestParam String email
+    ) {
+        String otp = service.generateOtpForEmail(email);
+        return java.util.Map.of(
+                "message", "Đã tạo mã xác nhận",
+                "otp", otp
+        );
+    }
+
+
+    // ======================================================
+    // RESET PASSWORD (XÁC NHẬN OTP & ĐỔI MẬT KHẨU)
+    // ======================================================
+
+    @PostMapping("/reset-password")
+    public java.util.Map<String, String> resetPassword(
+            @RequestParam String email,
+            @RequestParam String otp,
+            @RequestParam String newPassword
+    ) {
+        service.resetPasswordWithOtp(email, otp, newPassword);
+        return java.util.Map.of(
+                "message", "Đặt lại mật khẩu thành công"
+        );
+    }
+
+
+    // ======================================================
     // USER → RESPONSE
     // ======================================================
 

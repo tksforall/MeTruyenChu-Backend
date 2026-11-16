@@ -3,6 +3,7 @@ package com.example.mtc.service;
 import com.example.mtc.entity.BookFollow;
 import com.example.mtc.repository.BookFollowRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -45,14 +46,16 @@ public class BookFollowService {
         return repository.save(follow);
     }
 
+    @Transactional // Thêm annotation này
     public void unfollow(
             Long userId,
             Long bookId
     ) {
-
         repository.deleteByUserIdAndBookId(
                 userId,
                 bookId
         );
     }
+
+
 }

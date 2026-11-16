@@ -2,6 +2,7 @@ package com.example.mtc.service;
 
 import com.example.mtc.dto.ReviewResponse;
 import com.example.mtc.entity.Review;
+import com.example.mtc.entity.User;
 import com.example.mtc.repository.ReviewRepository;
 import com.example.mtc.repository.ReviewLikeRepository;
 import com.example.mtc.repository.ReportRepository;
@@ -35,6 +36,16 @@ public class ReviewService {
         this.userRepository = userRepository;
     }
 
+    private Review attachUserName(Review review) {
+        if (review != null && review.getUserId() != null) {
+            String name = userRepository.findById(review.getUserId())
+                    .map(User::getUserName) // hoặc User::getUsername tùy Entity User.java của bạn
+                    .orElse("User #" + review.getUserId());
+            review.setUserName(name);
+        }
+        return review;
+    }
+
     // ======================================================
     // LẤY REVIEW THEO ID
     // ======================================================
@@ -42,8 +53,7 @@ public class ReviewService {
     public Review getReviewById(
             Long reviewId
     ) {
-
-        return repository
+        Review review = repository
                 .findById(reviewId)
                 .orElseThrow(() ->
                         new RuntimeException(
@@ -51,6 +61,7 @@ public class ReviewService {
                                         + reviewId
                         )
                 );
+        return attachUserName(review);
     }
 
 
@@ -105,8 +116,9 @@ public class ReviewService {
     // ======================================================
 
     public List<Review> getReplies(Long reviewId) {
-
-        return repository.findByParentReviewId(reviewId);
+        List<Review> replies = repository.findByParentReviewId(reviewId);
+        replies.forEach(this::attachUserName);
+        return replies;
     }
 
 
